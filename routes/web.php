@@ -8,9 +8,9 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\SpeakerController;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+//Route::get('/', function () {
+//    return view('welcome');
+//})->name('home');
 
 Route::view('dashboard', 'dashboard')
     ->middleware(['auth', 'verified'])
@@ -40,7 +40,7 @@ Route::get('sessions', [\App\Http\Controllers\SessionPublicController::class, 'i
 
 // Public speakers listing (all speakers on one page)
 
-Route::get('speakers', [SpeakerController::class, 'index'])->name('speakers.index');
+Route::get('/', [SpeakerController::class, 'index'])->name('speakers.index');
 Route::get('api/speakers', [SpeakerController::class, 'speakersAPI'])->name('speakers.api.index');
 // Admin CRUD for events, sessions and speakers
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
