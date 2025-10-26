@@ -1,0 +1,19 @@
+
+{
+  "goal": "Create a Livewire component for managing user profiles with real-time validation and Tailwind CSS styling.",
+  "stack": ["Laravel", "Livewire", "Tailwind", "PHP"],
+  "files": {
+    "app/Http/Livewire/UserProfile.php": {
+      "lines": [1, 50]
+    },
+    "resources/views/livewire/user-profile.blade.php": {
+      "lines": [1, 40]
+    }
+  },
+  "context": "The current user profile management is done through traditional form submissions, which leads to a poor user experience due to page reloads. We want to improve this by using Livewire for real-time validation and updates.",
+  "constraints": [
+    "Use Livewire for component logic",
+    "Prefer Blade x-components for reusable UI elements",
+    "No new packages should be added"
+  ]
+}
