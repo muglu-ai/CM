@@ -38,7 +38,7 @@ Route::middleware(['auth'])->group(function () {
 // Public sessions listing with filters & search
 Route::get('sessions', [\App\Http\Controllers\SessionPublicController::class, 'index'])->name('sessions.index');
 
-// Public speakers listing (all speakers on one page)
+// Public speakers listing (all speakers on one page
 
 Route::get('api/speakers', [SpeakerController::class, 'speakersAPI'])->name('speakers.api.index');
 Route::get('/', [SpeakerController::class, 'index'])->name('speakers.index');
@@ -70,6 +70,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('speakers', [\App\Http\Controllers\Admin\SpeakerController::class, 'index'])->name('speakers.index');
     Route::get('speakers/create', [\App\Http\Controllers\Admin\SpeakerController::class, 'create'])->name('speakers.create');
     Route::post('speakers', [\App\Http\Controllers\Admin\SpeakerController::class, 'store'])->name('speakers.store');
+    // CSV/Excel import: sample download & import upload
+    Route::get('speakers/sample', [\App\Http\Controllers\Admin\SpeakerController::class, 'downloadSample'])->name('speakers.sample');
+    Route::post('speakers/import', [\App\Http\Controllers\Admin\SpeakerController::class, 'import'])->name('speakers.import');
     Route::get('speakers/{speaker}/edit', [\App\Http\Controllers\Admin\SpeakerController::class, 'edit'])->name('speakers.edit');
     Route::put('speakers/{speaker}', [\App\Http\Controllers\Admin\SpeakerController::class, 'update'])->name('speakers.update');
     Route::delete('speakers/{speaker}', [\App\Http\Controllers\Admin\SpeakerController::class, 'destroy'])->name('speakers.destroy');

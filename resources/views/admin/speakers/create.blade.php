@@ -1,6 +1,25 @@
 <x-layouts.app :title="__('Create Speaker')">
     <h1 class="text-2xl font-semibold mb-6">Create Speaker</h1>
 
+    {{-- Import sample download and CSV upload --}}
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <a href="{{ route('admin.speakers.sample') }}" class="inline-flex items-center px-3 py-2 bg-gray-100 border rounded-md text-sm">Download sample CSV</a>
+        </div>
+        <form action="{{ route('admin.speakers.import') }}" method="POST" enctype="multipart/form-data" class="flex items-center gap-2">
+            @csrf
+            <input type="file" name="file" accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="form-input text-sm">
+            <button type="submit" class="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-md text-sm">Upload CSV / Excel</button>
+        </form>
+    </div>
+
+    @if(session('success'))
+        <div class="mb-4 p-3 bg-green-100 text-green-800 rounded">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">{{ session('error') }}</div>
+    @endif
+
     <form action="{{ route('admin.speakers.store') }}" method="POST" class="space-y-6 bg-white p-6 rounded-lg shadow">
         @csrf
 

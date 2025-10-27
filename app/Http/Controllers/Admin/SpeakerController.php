@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Speaker;
-use App\Models\Track;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use App\Models\Track;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class SpeakerController extends Controller
 {
@@ -25,8 +27,170 @@ class SpeakerController extends Controller
         return view('admin.speakers.create', compact('tracks'));
     }
 
-    // this is https://bengalurutechsummit.com/img/speakers-25/demo.jpg
+    /**
+     * Download a small CSV sample that matches the expected import columns.
+     */
+    public function downloadSample()
+    {
+        $headers = [
+            'Name', 'Job Title', 'Company', 'Linkedin',
+            'TRENDS STAGE (IT & DeepTech)', 'CIRCUIT STAGE (Electronics & Semicon)', 'LIFE STAGE (Digihealth & Biotech)',
+            'STARTUP STAGE I', 'STARTUP STAGE II', 'WORLD STAGE-1 (GIA)', 'WORLD STAGE-2 (GIA)'
+        ];
 
+        $rows = [
+            $headers,
+            ['John Doe', 'Engineer', 'Acme Inc', 'https://linkedin.com/in/johndoe', '1', '', '', '', '', '', '']
+        ];
+
+        $filename = 'speakers_sample.csv';
+
+        $callback = function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            foreach ($rows as $row) {
+                fputcsv($out, $row);
+            }
+            fclose($out);
+        };
+
+        return response()->streamDownload($callback, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
+    /**
+     * Import speakers from uploaded CSV. Minimal and forgiving.
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls',
+        ]);
+
+        $path = $request->file('file')->getRealPath();
+
+        // Use PhpSpreadsheet to load CSV or Excel files so we support .xlsx/.xls/.csv
+        try {
+            $spreadsheet = IOFactory::load($path);
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Unable to read uploaded file: ' . $e->getMessage());
+        }
+
+        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
+        // Convert rows to zero-indexed numeric arrays for simpler handling
+        $plain = array_map(function ($r) { return array_values($r); }, $rows);
+        if (count($plain) === 0) {
+            return redirect()->back()->with('error', 'Uploaded file appears empty.');
+        }
+
+        $header = $plain[0];
+        // Normalize header keys
+        $cols = array_map(function ($h) { return trim($h); }, $header);
+
+        // Known speaker fields (case-insensitive match)
+        $known = ['name','job title','company','linkedin','title','image','website'];
+
+        $created = 0;
+        $updated = 0;
+        $errors = [];
+
+        DB::beginTransaction();
+        try {
+            // Iterate data rows (starting from index 1)
+            for ($r = 1, $len = count($plain); $r < $len; $r++) {
+                $row = $plain[$r];
+
+                // Skip empty rows
+                if (count(array_filter($row, fn($v)=>trim((string)$v) !== '')) === 0) {
+                    continue;
+                }
+
+                $assoc = [];
+                foreach ($cols as $i => $col) {
+                    $assoc[$col] = $row[$i] ?? null;
+                }
+
+                $name = trim($assoc['Name'] ?? $assoc['name'] ?? '');
+                if ($name === '') {
+                    $errors[] = 'Missing name on a row, skipping';
+                    continue;
+                }
+
+                $slug = Str::slug($name);
+
+                //here in image path if (empty($data['image_path'])) {
+                //            $data['image_path'] = 'https://bengalurutechsummit.com/img/speakers-25/' . $data['slug'] . '.jpg';
+                //        }
+
+                $image_path = 'https://bengalurutechsummit.com/img/speakers-25/' . $slug . '.jpg';
+
+                $data = [
+                    'name' => $name,
+                    'slug' => $slug,
+                    'title' => trim($assoc['Job Title'] ?? $assoc['title'] ?? ''),
+                    'company' => trim($assoc['Company'] ?? ''),
+                    'linkedin' => trim($assoc['Linkedin'] ?? ''),
+                    'image_path' => $image_path,
+                    'bio' => null,
+                    'website' => null,
+                ];
+
+                // Create or update speaker
+                $speaker = Speaker::updateOrCreate(['slug' => $slug], $data);
+                if ($speaker->wasRecentlyCreated) {
+                    $created++;
+                } else {
+                    $updated++;
+                }
+
+                // Map track columns: any column not in known list is treated as a track name
+                $trackIds = [];
+                foreach ($cols as $i => $col) {
+                    $normalized = strtolower(trim($col));
+                    if (in_array($normalized, $known)) {
+                        continue;
+                    }
+
+                    $val = $row[$i] ?? '';
+                    // Normalize value and only map when it's exactly '1' (numeric or string)
+                    $valNormalized = is_null($val) ? '' : trim((string) $val);
+                    if ($valNormalized !== '1') {
+                        continue;
+                    }
+
+                    $trackName = trim($col);
+                    $trackSlug = Str::slug($trackName);
+
+                    $track = Track::firstWhere('slug', $trackSlug) ?? Track::firstWhere('name', $trackName);
+                    if (!$track) {
+                        // Create track if not found
+                        $track = Track::create(['name' => $trackName, 'slug' => $trackSlug]);
+                    }
+
+                    $trackIds[] = $track->id;
+                }
+
+                if (!empty($trackIds)) {
+                    // attach without detaching existing relations
+                    $speaker->tracks()->syncWithoutDetaching($trackIds);
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // no fopen handle to close when using IOFactory
+            return redirect()->back()->with('error', 'Import failed: '.$e->getMessage());
+        }
+
+
+        $msg = "Import complete. Created: $created, Updated: $updated";
+        if (!empty($errors)) {
+            $msg .= '. Warnings: '.implode('; ', array_slice($errors,0,5));
+        }
+
+        return redirect()->route('admin.speakers.index')->with('success', $msg);
+    }
 
     public function store(Request $request)
     {
