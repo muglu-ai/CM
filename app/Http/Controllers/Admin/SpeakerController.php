@@ -78,7 +78,9 @@ class SpeakerController extends Controller
 
         $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, true);
         // Convert rows to zero-indexed numeric arrays for simpler handling
-        $plain = array_map(function ($r) { return array_values($r); }, $rows);
+        // `toArray()` returns an array keyed by spreadsheet row numbers (1-based).
+        // Use array_values on the outer array to reindex to 0..N-1 so $plain[0] exists.
+        $plain = array_values(array_map(function ($r) { return array_values($r); }, $rows));
         if (count($plain) === 0) {
             return redirect()->back()->with('error', 'Uploaded file appears empty.');
         }
