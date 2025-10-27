@@ -40,8 +40,9 @@ Route::get('sessions', [\App\Http\Controllers\SessionPublicController::class, 'i
 
 // Public speakers listing (all speakers on one page)
 
-Route::get('/', [SpeakerController::class, 'index'])->name('speakers.index');
 Route::get('api/speakers', [SpeakerController::class, 'speakersAPI'])->name('speakers.api.index');
+Route::get('/', [SpeakerController::class, 'index'])->name('speakers.index');
+Route::get('/', [SpeakerController::class, 'index'])->name('home');
 // Admin CRUD for events, sessions and speakers
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     // Events
