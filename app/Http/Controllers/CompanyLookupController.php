@@ -29,7 +29,10 @@ class CompanyLookupController extends Controller
         } else {
             $first = Str::upper(Str::substr($letter, 0, 1));
             if (!preg_match('/^[A-Z]$/', $first)) {
-                return response()->json([ 'error' => 'Invalid letter' ], 422);
+                return response()->json([ 'error' => 'Invalid letter' ], 422)
+                    ->header('Access-Control-Allow-Origin', 'https://www.bengalurutechsummit.com')
+                    ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                    ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
             }
             $query->where('company_name', 'LIKE', $first . '%');
         }
@@ -39,7 +42,10 @@ class CompanyLookupController extends Controller
             ->orderBy('company_name')
             ->pluck('company_name');
 
-        return response()->json($companies);
+        return response()->json($companies)
+            ->header('Access-Control-Allow-Origin', 'https://www.bengalurutechsummit.com')
+            ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     }
 }
 

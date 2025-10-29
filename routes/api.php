@@ -18,3 +18,9 @@ Route::get('tracks-with-speakers', [\App\Http\Controllers\SpeakerController::cla
 
 // Company lookup by starting letter (A-Z) or '#' for others
 Route::get('companies/{letter}', [CompanyLookupController::class, 'index']);
+Route::options('companies/{letter}', function () {
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', 'https://www.bengalurutechsummit.com')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+});
