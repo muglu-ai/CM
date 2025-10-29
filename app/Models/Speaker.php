@@ -73,16 +73,16 @@ class Speaker extends Model
         }
 
         // Treat as local relative path (public/)
-        $publicPath = public_path($path);
-        if (file_exists($publicPath)) {
-            return asset($path);
-        }
+        // $publicPath = public_path($path);
+        // if (file_exists($publicPath)) {
+        //     return asset($path);
+        // }
 
-        // Maybe stored in storage/app/public
-        $storageCandidate = storage_path('app/public/' . ltrim($path, '/'));
-        if (file_exists($storageCandidate)) {
-            return asset('storage/' . ltrim($path, '/'));
-        }
+        // // Maybe stored in storage/app/public
+        // $storageCandidate = storage_path('app/public/' . ltrim($path, '/'));
+        // if (file_exists($storageCandidate)) {
+        //     return asset('storage/' . ltrim($path, '/'));
+        // }
 
         return $default;
     }
