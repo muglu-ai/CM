@@ -64,14 +64,7 @@ class Speaker extends Model
         }
 
         // If absolute URL
-        if (preg_match('#^https?://#i', $path)) {
-            if ($this->remoteUrlExists($path)) {
-                return $path;
-            }
-
-            return $default;
-        }
-
+        
         // Treat as local relative path (public/)
         // $publicPath = public_path($path);
         // if (file_exists($publicPath)) {
@@ -84,32 +77,48 @@ class Speaker extends Model
         //     return asset('storage/' . ltrim($path, '/'));
         // }
 
-        return $default;
+        return  $path;
     }
 
     /**
-     * Check whether a remote URL exists by inspecting headers.
-     * Returns true for 2xx and 3xx responses.
+     * Check whether a remote URL exists by making a proper HTTP request.
+     * Returns true for 2xx and 3xx responses, follows redirects properly.
      */
     protected function remoteUrlExists(string $url): bool
     {
         // Cache the result to avoid many remote requests on page render.
         $cacheKey = 'speaker_image_exists:' . md5($url);
         return Cache::remember($cacheKey, now()->addHours(6), function () use ($url) {
-            // Suppress warnings in case allow_url_fopen is disabled or DNS fails
-            $headers = @get_headers($url, 1);
-            if (!is_array($headers) || empty($headers)) {
+            // Use cURL for more reliable URL checking
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => $url,
+                CURLOPT_NOBODY => true, // HEAD request only
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_FOLLOWLOCATION => true, // Follow redirects
+                CURLOPT_MAXREDIRS => 5, // Limit redirects
+                CURLOPT_TIMEOUT => 10, // 10 second timeout
+                CURLOPT_CONNECTTIMEOUT => 5, // 5 second connection timeout
+                CURLOPT_SSL_VERIFYPEER => false, // For self-signed certificates
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; Conference Management System)',
+                CURLOPT_HTTPHEADER => [
+                    'Accept: image/*,*/*;q=0.8',
+                ],
+            ]);
+
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+
+            // Check for cURL errors
+            if ($result === false || !empty($error)) {
                 return false;
             }
 
-            // First header contains HTTP status line
-            $statusLine = $headers[0] ?? '';
-            if (preg_match('#^HTTP/\d(?:\.\d)?\s+(\d{3})#i', $statusLine, $m)) {
-                $code = (int) ($m[1] ?? 0);
-                return $code >= 200 && $code < 400; // 2xx and 3xx OK
-            }
-
-            return false;
+            // Return true for 2xx and 3xx status codes
+            return $httpCode >= 200 && $httpCode < 400;
         });
     }
 }
