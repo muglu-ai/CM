@@ -21,6 +21,9 @@ class CompanyLookupController extends Controller
             ->select('company_name')
             ->whereNotNull('company_name');
 
+        // Exclude company name equal to 'SCI' (case-insensitive)
+        $query->whereRaw('UPPER(TRIM(company_name)) <> ?', ['SCI']);
+
         $letter = trim($letter);
 
         if ($letter === '#') {
