@@ -32,6 +32,13 @@
     </div>
 
     <div class="space-y-1">
+        <label for="linkedin" class="block text-sm font-medium text-gray-700">LinkedIn</label>
+        <input id="linkedin" name="linkedin" value="{{ old('linkedin', $speaker->linkedin) }}"
+               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500" />
+        @error('linkedin') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+    </div>
+
+    <div class="space-y-1">
         <label for="bio" class="block text-sm font-medium text-gray-700">Bio</label>
         <textarea id="bio" name="bio" rows="5"
                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">{{ $speaker->bio }}</textarea>
