@@ -13,12 +13,23 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class SpeakerController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
         // Eager-load tracks to avoid N+1 queries when showing tracks in admin list
-        $speakers = Speaker::with('tracks')->latest()->paginate(20);
+        $query = Speaker::with('tracks')->latest();
 
-        return view('admin.speakers.index', compact('speakers'));
+        $search = trim((string) $request->get('q', ''));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('company', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%");
+            });
+        }
+
+        $speakers = $query->paginate(20)->appends(['q' => $search]);
+
+        return view('admin.speakers.index', compact('speakers', 'search'));
     }
 
     public function create()
