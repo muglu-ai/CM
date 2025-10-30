@@ -82,6 +82,17 @@ class SpeakerController extends Controller
 
     public function speakersAPI2()
     {
+        // Define the track sequence order
+        $trackSequence = [
+            'TRENDS STAGE (IT & DeepTech)',
+            'CIRCUIT STAGE (Electronics & Semicon)',
+            'LIFE STAGE (Digihealth & Biotech)',
+            'Startup Stage I',
+            'Startup Stage II',
+            'World Stage-1 (GIA)',
+            'World Stage-2 (GIA)'
+        ];
+
         $tracks = Track::whereHas('speakers')
             ->with(['speakers' => function ($q) {
                 // select only needed columns to keep payload small and order speakers by name
@@ -96,10 +107,15 @@ class SpeakerController extends Controller
                 )->orderBy('name');
             }])
             ->select('id', 'name', 'slug')
-            ->orderBy('name')
             ->get();
 
-        $payload = $tracks->map(function ($t) {
+        // Sort tracks according to the defined sequence
+        $sortedTracks = $tracks->sortBy(function ($track) use ($trackSequence) {
+            $index = array_search($track->name, $trackSequence);
+            return $index !== false ? $index : 999; // Put unknown tracks at the end
+        });
+
+        $payload = $sortedTracks->map(function ($t) {
             return [
                 'id' => $t->id,
                 'name' => $t->name,

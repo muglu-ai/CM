@@ -7,6 +7,7 @@ use App\Livewire\Settings\TwoFactor;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use App\Http\Controllers\SpeakerController;
+use App\Http\Controllers\CompanyLookupController;
 
 //Route::get('/', function () {
 //    return view('welcome');
@@ -39,6 +40,7 @@ Route::middleware(['auth'])->group(function () {
 Route::get('sessions', [\App\Http\Controllers\SessionPublicController::class, 'index'])->name('sessions.index');
 
 // Public speakers listing (all speakers on one page
+Route::get('companies/{letter}', [CompanyLookupController::class, 'index']);
 
 Route::get('api/speakers', [SpeakerController::class, 'speakersAPI'])->name('speakers.api.index');
 Route::get('/', [SpeakerController::class, 'index'])->name('speakers.index');

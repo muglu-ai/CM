@@ -8,12 +8,14 @@ use App\Models\Event;
 use App\Models\Speaker;
 use App\Models\Track;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class SessionController extends Controller
 {
     public function index()
     {
-        $sessions = Session::with('event')->latest()->paginate(20);
+        $sessions = Session::with(['event', 'track'])->latest()->paginate(20);
 
         return view('admin.sessions.index', compact('sessions'));
     }
@@ -31,20 +33,26 @@ class SessionController extends Controller
         $data = $request->validate([
             'event_id' => 'required|exists:events,id',
             'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:event_sessions,slug',
             'description' => 'nullable|string',
-            'starts_at' => 'nullable|date',
-            'ends_at' => 'nullable|date',
-            'format' => 'nullable|string|max:255',
-            'language' => 'nullable|string|max:255',
-            'level' => 'nullable|string|max:255',
-            'track' => 'nullable|string|max:255',
+            'starts_at' => 'nullable|date_format:Y-m-d\TH:i',
+            'ends_at' => 'nullable|date_format:Y-m-d\TH:i',
+            'event_day' => 'required|in:Day 1,Day 2,Day 3',
             'track_id' => 'nullable|exists:tracks,id',
             'location' => 'nullable|string|max:255',
             'room' => 'nullable|string|max:255',
-            'ceu_hours' => 'nullable|numeric',
-            'capacity' => 'nullable|integer',
         ]);
+
+        // Generate slug from title
+        $data['slug'] = Str::slug($data['title']);
+        
+        // Ensure slug is unique
+        $originalSlug = $data['slug'];
+        $counter = 1;
+        while (Session::where('slug', $data['slug'])->exists()) {
+            $data['slug'] = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
 
         Session::create($data);
 
@@ -53,6 +61,7 @@ class SessionController extends Controller
 
     public function edit(Session $session)
     {
+        $session->load('track');
         $events = Event::orderBy('name')->get();
         $tracks = Track::orderBy('name')->get();
 
@@ -64,20 +73,26 @@ class SessionController extends Controller
         $data = $request->validate([
             'event_id' => 'required|exists:events,id',
             'title' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:event_sessions,slug,' . $session->id,
             'description' => 'nullable|string',
-            'starts_at' => 'nullable|date',
-            'ends_at' => 'nullable|date',
-            'format' => 'nullable|string|max:255',
-            'language' => 'nullable|string|max:255',
-            'level' => 'nullable|string|max:255',
-            'track' => 'nullable|string|max:255',
+            'starts_at' => 'nullable|date_format:Y-m-d\TH:i',
+            'ends_at' => 'nullable|date_format:Y-m-d\TH:i',
+            'event_day' => 'required|in:Day 1,Day 2,Day 3',
             'track_id' => 'nullable|exists:tracks,id',
             'location' => 'nullable|string|max:255',
             'room' => 'nullable|string|max:255',
-            'ceu_hours' => 'nullable|numeric',
-            'capacity' => 'nullable|integer',
         ]);
+
+        // Generate slug from title
+        $data['slug'] = Str::slug($data['title']);
+        
+        // Ensure slug is unique (excluding current session)
+        $originalSlug = $data['slug'];
+        $counter = 1;
+        while (Session::where('slug', $data['slug'])->where('id', '!=', $session->id)->exists()) {
+            $data['slug'] = $originalSlug . '-' . $counter;
+            $counter++;
+        }
+
 
         $session->update($data);
 

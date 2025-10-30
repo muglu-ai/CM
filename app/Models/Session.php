@@ -23,7 +23,6 @@ class Session extends Model
         'format',
         'language',
         'level',
-        'track',
         'tags',
         'location',
         'room',
@@ -54,6 +53,6 @@ class Session extends Model
 
     public function track()
     {
-        return $this->belongsTo(Track::class, 'track_id');
+        return $this->belongsTo(Track::class, 'track_id', 'id');
     }
 }
