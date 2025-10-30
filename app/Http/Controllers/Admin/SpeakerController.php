@@ -148,13 +148,16 @@ class SpeakerController extends Controller
                     'website' => null,
                 ];
 
-                // Create or update speaker
-                $speaker = Speaker::updateOrCreate(['slug' => $slug], $data);
-                if ($speaker->wasRecentlyCreated) {
-                    $created++;
-                } else {
-                    $updated++;
+                // Skip duplicates: if a speaker with same slug exists, record warning and continue
+                $existing = Speaker::where('slug', $slug)->first();
+                if ($existing) {
+                    $errors[] = 'Duplicate found for name "' . $name . '" (already exists as "' . ($existing->name ?? $name) . '")';
+                    continue;
                 }
+
+                // Create new speaker
+                $speaker = Speaker::create($data);
+                $created++;
 
                 // Map track columns: any column not in known list is treated as a track name
                 $trackIds = [];
@@ -222,6 +225,14 @@ class SpeakerController extends Controller
 
         // Generate slug automatically from name
         $data['slug'] = Str::slug($data['name']);
+
+        // Prevent duplicate speakers by slug; show existing name in the error
+        if ($existing = Speaker::where('slug', $data['slug'])->first()) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Speaker with this name already exists: ' . ($existing->name ?? ''));
+        }
 
         //we have to set the image path as https://bengalurutechsummit.com/img/speakers-25/demo.jpg
         // instead of demo.jpg we have to set the image name as $data['slug'].jpg
